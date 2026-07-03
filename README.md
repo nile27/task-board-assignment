@@ -18,7 +18,7 @@
 ## 개발 기간
 
 - **3일 (72시간)**
-- 제출 마감: **{제출 마감일 기입}**
+- 제출 마감: **2026-07-08 (수) 23:59**
 - 제한된 시간 내 우선순위를 판단하여 핵심 기능(Priority 1)부터 구현해 주세요.
 
 ## 제공되는 것 (스타터)
@@ -165,7 +165,19 @@ VITE_BASE=/저장소이름/ npm run build
 
 Windows Git Bash에서는 앞 슬래시가 경로로 변환될 수 있으니 PowerShell(`$env:VITE_BASE="/저장소이름/"; npm run build`)을 권장합니다. 배포 방법은 저장소의 `deploy.yml.example`을 참고하세요.
 
-## 제출 요구사항
+## 제출 방법
+
+완성된 결과물은 아래 **두 가지**를 이메일로 제출해 주세요.
+
+- **제출처: support@synclife.co.kr**
+- **제출 마감: 2026-07-08 (수) 23:59**
+- 메일에 아래 2개만 기재하면 됩니다.
+  1. **GitHub Repository 주소** (Public)
+  2. **배포 URL** (GitHub Pages 등)
+
+아래 산출물(README / DECISIONS.md / AI_USAGE.md)은 별도 첨부가 아니라 **위 저장소 안에 포함**되어 있으면 됩니다.
+
+### 저장소에 포함되어야 할 것
 
 1. **Public GitHub Repository** — 의미 있는 커밋 10개 이상
 2. **배포 URL** — GitHub Pages 등, 배포 환경에서 구현 기능이 실제로 동작해야 함
