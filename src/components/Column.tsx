@@ -6,10 +6,20 @@ interface Props {
   status: Status;
   tasks: Task[];
   onMove: (id: string, status: Status) => void;
+  onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  onAdd?: () => void;
 }
 
-export function Column({ title, status, tasks, onMove, onDelete }: Props) {
+export function Column({
+  title,
+  status,
+  tasks,
+  onMove,
+  onDelete,
+  onAdd,
+  onEdit,
+}: Props) {
   return (
     <section
       className="column"
@@ -20,12 +30,23 @@ export function Column({ title, status, tasks, onMove, onDelete }: Props) {
       }}
     >
       <h2 className="column-title">
-        {title} <span className="count">{tasks.length}</span>
+        <span>
+          {title} <span className="count">{tasks.length}</span>
+        </span>
+        {onAdd && (
+          <button
+            type="button"
+            className="column-add"
+            aria-label="할 일 추가"
+            onClick={onAdd}
+          >
+            +
+          </button>
+        )}
       </h2>
       <div className="column-body">
-        {/* ⚠️ 5,000개를 그대로 렌더합니다. 대량 데이터 성능 최적화는 당신의 몫입니다. */}
         {tasks.map((t) => (
-          <Card key={t.id} task={t} onDelete={onDelete} />
+          <Card key={t.id} task={t} onEdit={onEdit} onDelete={onDelete} />
         ))}
       </div>
     </section>

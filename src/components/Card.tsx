@@ -8,10 +8,11 @@ const PRIORITY_LABEL: Record<Task["priority"], string> = {
 
 interface Props {
   task: Task;
+  onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
 }
 
-export function Card({ task, onDelete }: Props) {
+export function Card({ task, onDelete, onEdit }: Props) {
   return (
     <article
       className={`card priority-${task.priority}`}
@@ -21,6 +22,19 @@ export function Card({ task, onDelete }: Props) {
       <div className="card-header">
         <div className="card-title">{task.title}</div>
         <div className="card-actions">
+          <button
+            type="button"
+            className="card-edit"
+            aria-label="수정"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(task);
+            }}
+            draggable={false}
+            onDragStart={(e) => e.preventDefault()}
+          >
+            ✎
+          </button>
           <button
             type="button"
             className="card-delete"
