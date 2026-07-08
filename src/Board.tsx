@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Task, Status, Priority } from "./types";
 import { createTask, deleteTask, getTasks, updateTask } from "./api/client";
 import { Column } from "./components/Column";
@@ -17,6 +17,8 @@ export default function Board() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
 
+  const inFlight = useRef<Set<string>>(new Set()); // 지금 요청 중인 카드들
+
   const load = () => {
     setLoading(true);
     setIsError(false); // 재시도 시 이전 에러 초기화
@@ -29,31 +31,34 @@ export default function Board() {
     load();
   }, []);
 
-  // ⚠️ 서버에 저장하지 않고 로컬 상태만 바꾸는 "순진한" 이동입니다.
-  // TODO(P1): 낙관적 업데이트 + 실패 시 롤백 + 경쟁 상태 처리를 구현하세요.
-  //   - updateTask(id, { status, version }) 로 서버에 반영
-  //   - 실패(15%)하면 이전 상태로 되돌리고 사용자에게 알림
-  //   - 같은 카드를 빠르게 연속 이동해도 최종 상태가 서버와 일치하도록
   const moveTask = (id: string, status: Status) => {
+    if (inFlight.current.has(id)) return; // 요청 중 -> 새로운 요청 무시
+
     const snapshot = tasks;
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
 
-    console.log("🟡 보내기 전:", { id, status, 현재version: task.version });
+    inFlight.current.add(id); // 카드 요청 시작함
 
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
 
     updateTask(id, { status, version: task.version })
       .then((updated) => {
-        console.log("🟢 성공! 서버가 준 값:", {
-          status: updated.status,
-          새version: updated.version,
-        });
         setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
       })
       .catch((err) => {
-        console.log("🔴 실패! 에러:", err.status, err.message);
-        setTasks(snapshot);
+        if (err?.status === 409) {
+          const server = err.payload?.current as Task | undefined;
+          if (server)
+            setTasks((prev) => prev.map((t) => (t.id === id ? server : t)));
+          alert("다른 곳에서 먼저 변경되었습니다. 최신 상태로 맞췄어요.");
+        } else {
+          setTasks(snapshot);
+          alert("저장에 실패했어요. 되돌립니다.");
+        }
+      })
+      .finally(() => {
+        inFlight.current.delete(id); // "요청 끝남" 표시 해제
       });
   };
 
