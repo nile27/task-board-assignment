@@ -14,7 +14,7 @@
 export const WRITE_FAILURE_RATE = 0.15;
 
 /** 읽기(GET) 실패 확률 (0~1) */
-export const READ_FAILURE_RATE = 0.5;
+export const READ_FAILURE_RATE = 0;
 
 /** 응답 지연 최소/최대 (ms) */
 export const MIN_LATENCY = 200;
