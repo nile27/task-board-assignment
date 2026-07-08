@@ -3,7 +3,7 @@ import type { Task, Status, Priority } from "./types";
 import { createTask, deleteTask, getTasks, updateTask } from "./api/client";
 import { Column } from "./components/Column";
 import { TaskFormModal } from "./components/TaskFormModal";
-// 상태 조작 순수 함수 (테스트된 로직을 실제 런타임에서도 사용)
+
 import { replaceTask, rollbackTask, removeById, patchTask } from "./lib/tasks";
 
 const COLUMNS: { status: Status; title: string }[] = [
