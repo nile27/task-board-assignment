@@ -169,18 +169,34 @@ export default function Board() {
   return (
     <>
       <div className="board">
-        {COLUMNS.map((col) => (
-          <Column
-            key={col.status}
-            title={col.title}
-            status={col.status}
-            tasks={byStatus[col.status]}
-            onMove={moveTask}
-            onEdit={(task) => setEditing(task)}
-            onDelete={removeTask}
-            onAdd={col.status === "todo" ? () => setShowForm(true) : undefined}
-          />
-        ))}
+        {COLUMNS.map((col) => {
+          if (tasks.length === 0) {
+            return (
+              <section className="errorColumn" key={col.status}>
+                <h2 className="column-title">
+                  {col.title} <span className="count">{tasks.length}</span>
+                </h2>
+                <div className="hintContainer">
+                  <p className="hint">등록한 작업이 없습니다.</p>
+                </div>
+              </section>
+            );
+          }
+          return (
+            <Column
+              key={col.status}
+              title={col.title}
+              status={col.status}
+              tasks={byStatus[col.status]}
+              onMove={moveTask}
+              onEdit={(task) => setEditing(task)}
+              onDelete={removeTask}
+              onAdd={
+                col.status === "todo" ? () => setShowForm(true) : undefined
+              }
+            />
+          );
+        })}
       </div>
 
       {/* 생성 모달 */}
