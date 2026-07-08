@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Task, Status } from "./types";
-import { getTasks, updateTask } from "./api/client";
+import { deleteTask, getTasks, updateTask } from "./api/client";
 import { Column } from "./components/Column";
 
 const COLUMNS: { status: Status; title: string }[] = [
@@ -54,6 +54,27 @@ export default function Board() {
       });
   };
 
+  const removeTask = (id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+
+    // 확인 다이얼로그 (P1-5 필수)
+    if (!window.confirm(`"${task.title}" 태스크를 삭제할까요?`)) return;
+
+    const snapshot = task; // 롤백용
+
+    // 낙관적: 화면에서 먼저 제거
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+
+    deleteTask(id)
+      .then(() => console.log("🟢 삭제 성공:", id))
+      .catch((err) => {
+        console.log("🔴 삭제 실패, 되살림:", err?.status);
+        setTasks((prev) => [...prev, snapshot]);
+        alert("삭제에 실패했어요. 되돌립니다.");
+      });
+  };
+
   const byStatus = useMemo(() => {
     const map: Record<Status, Task[]> = {
       todo: [],
@@ -81,6 +102,7 @@ export default function Board() {
           status={col.status}
           tasks={byStatus[col.status]}
           onMove={moveTask}
+          onDelete={removeTask}
         />
       ))}
     </div>
