@@ -3,6 +3,8 @@ import type { Task, Status, Priority } from "./types";
 import { createTask, deleteTask, getTasks, updateTask } from "./api/client";
 import { Column } from "./components/Column";
 import { TaskFormModal } from "./components/TaskFormModal";
+// 상태 조작 순수 함수 (테스트된 로직을 실제 런타임에서도 사용)
+import { replaceTask, rollbackTask, removeById, patchTask } from "./lib/tasks";
 
 const COLUMNS: { status: Status; title: string }[] = [
   { status: "todo", title: "To Do" },
@@ -34,26 +36,27 @@ export default function Board() {
   const moveTask = (id: string, status: Status) => {
     if (inFlight.current.has(id)) return; // 요청 중 -> 새로운 요청 무시
 
-    const snapshot = tasks;
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
 
     inFlight.current.add(id); // 카드 요청 시작함
 
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+    // 낙관적: 화면 먼저 반영
+    setTasks((prev) => patchTask(prev, id, { status }));
 
     updateTask(id, { status, version: task.version })
       .then((updated) => {
-        setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
+        // 성공: 서버 최신값(version↑)으로 교체
+        setTasks((prev) => replaceTask(prev, updated));
       })
       .catch((err) => {
         if (err?.status === 409) {
           const server = err.payload?.current as Task | undefined;
-          if (server)
-            setTasks((prev) => prev.map((t) => (t.id === id ? server : t)));
+          if (server) setTasks((prev) => replaceTask(prev, server));
           alert("다른 곳에서 먼저 변경되었습니다. 최신 상태로 맞췄어요.");
         } else {
-          setTasks(snapshot);
+          // 실패: 해당 카드만 이전 상태로 롤백 (전체 배열이 아니라 그 카드만)
+          setTasks((prev) => rollbackTask(prev, task));
           alert("저장에 실패했어요. 되돌립니다.");
         }
       })
@@ -91,14 +94,12 @@ export default function Board() {
       status: "todo",
     })
       .then((created) => {
-        // 성공: 임시 카드를 서버가 준 진짜 카드(진짜 id/version)로 교체
-        console.log("🟢 생성 성공:", created.id);
+        // 성공: 임시 카드를 서버가 준 진짜 카드로 교체
         setTasks((prev) => prev.map((t) => (t.id === tempId ? created : t)));
       })
-      .catch((err) => {
+      .catch(() => {
         // 실패: 임시 카드 제거
-        console.log("🔴 생성 실패, 제거:", err?.status);
-        setTasks((prev) => prev.filter((t) => t.id !== tempId));
+        setTasks((prev) => removeById(prev, tempId));
         alert("추가에 실패했어요.");
       });
   };
@@ -110,23 +111,21 @@ export default function Board() {
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
 
-    const snapshot = task;
-
     // 낙관적: 화면 먼저 반영
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+    setTasks((prev) => patchTask(prev, id, patch));
 
     updateTask(id, { ...patch, version: task.version })
       .then((updated) => {
-        setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
+        setTasks((prev) => replaceTask(prev, updated));
       })
       .catch((err) => {
         if (err?.status === 409) {
           const server = err.payload?.current as Task | undefined;
-          if (server)
-            setTasks((prev) => prev.map((t) => (t.id === id ? server : t)));
+          if (server) setTasks((prev) => replaceTask(prev, server));
           alert("다른 곳에서 먼저 변경되었습니다. 최신 상태로 맞췄어요.");
         } else {
-          setTasks((prev) => prev.map((t) => (t.id === id ? snapshot : t)));
+          // 실패: 해당 카드만 이전 상태로 롤백
+          setTasks((prev) => rollbackTask(prev, task));
           alert("수정에 실패했어요. 되돌립니다.");
         }
       });
@@ -142,15 +141,13 @@ export default function Board() {
     const snapshot = task; // 롤백용
 
     // 낙관적: 화면에서 먼저 제거
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    setTasks((prev) => removeById(prev, id));
 
-    deleteTask(id)
-      .then(() => console.log("🟢 삭제 성공:", id))
-      .catch((err) => {
-        console.log("🔴 삭제 실패, 되살림:", err?.status);
-        setTasks((prev) => [...prev, snapshot]);
-        alert("삭제에 실패했어요. 되돌립니다.");
-      });
+    deleteTask(id).catch(() => {
+      // 실패: 되살림 (원래 위치 정보는 없어 끝에 재삽입)
+      setTasks((prev) => [...prev, snapshot]);
+      alert("삭제에 실패했어요. 되돌립니다.");
+    });
   };
 
   const byStatus = useMemo(() => {
